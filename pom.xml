@@ -7,7 +7,7 @@
     <groupId>sobhanz.example</groupId>
     <artifactId>sobhan</artifactId>
     <version>1.0-SNAPSHOT</version>
-
+<!-- MAIN -->
 <build>
     <plugins>
         <plugin>
@@ -21,14 +21,14 @@
     </plugins>
 </build>
 <dependencies>
-    <!-- وابستگی به درایور Neo4j -->
+    <!-- Neo4j -->
     <dependency>
         <groupId>org.neo4j.driver</groupId>
         <artifactId>neo4j-java-driver</artifactId>
         <version>5.24.0</version>
     </dependency>
 
-    <!-- وابستگی به JSON -->
+    <!-- JSON -->
     <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>
