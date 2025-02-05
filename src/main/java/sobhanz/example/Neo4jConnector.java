@@ -25,7 +25,7 @@ public class Neo4jConnector implements AutoCloseable {
         driver.close();
     }
 
-    // Optimized method for running read queries
+    // method for reading queries
     public List<Record> runReadQuery(String query, Value parameters) {
         List<Record> results = new ArrayList<>();
         try (Session session = driver.session()) {

@@ -16,12 +16,9 @@ public class QueryHandler {
         this.ollama = ollama;
     }
 
-    // این متد ورودی کاربر را دریافت می‌کند، prompt استخراج را به مدل ارسال می‌کند
-    // و بر اساس intent استخراج شده، تابع مربوطه را فراخوانی می‌کند.
+    // to process user input
     public void processUserQuery(String input) {
-        // این prompt به مدل می‌گوید که موجودیت‌های مرتبط با سوال کاربر را استخراج کند.
-        // مثال‌های مختلف برای شخص، شهر، کشور، قاره، شغل، صنعت، قرن و پرسش‌های ترکیبی
-        // ارائه شده است.
+        // examples of input for ollama
         String extractionPrompt = """
                 Analyze the following historical query and extract the relevant entities.
                 Return ONLY a valid JSON object with NO extra text, explanations, or code.
@@ -88,11 +85,11 @@ public class QueryHandler {
                 """
                 .formatted(input);
 
-        // فراخوانی سرویس Ollama جهت دریافت پاسخ استخراج موجودیت‌ها
+        // for ollama raw response
         String response = ollama.generate("llama3.2", extractionPrompt);
-        System.out.println("\n[Ollama Raw Response]: " + response);
+        // System.out.println("\n[Ollama Raw Response]: " + response);
 
-        // پاکسازی رشته JSON دریافتی
+        // cleaning JSON
         response = cleanJsonString(response);
 
         if (!response.trim().startsWith("{")) {
@@ -102,14 +99,14 @@ public class QueryHandler {
 
         try {
             JSONObject extractedData = new JSONObject(response);
-            System.out.println("\n[Extracted JSON Data]: " + extractedData.toString(2));
+            // System.out.println("\n[Extracted JSON Data]: " + extractedData.toString(2));
 
             if (extractedData.isNull("intent")) {
                 System.out.println("[Error] No intent detected in response.");
                 return;
             }
 
-            // انتخاب intent استخراج شده و فراخوانی تابع مربوطه
+            // for choosing the topic of query
             switch (extractedData.getString("intent")) {
                 case "query_person":
                     String personName = getSafeString(extractedData.getJSONObject("entities"), "person");
@@ -143,7 +140,7 @@ public class QueryHandler {
                     getCombinedQuery(extractedData.getJSONObject("entities"));
                     break;
                 default:
-                    System.out.println("[Error] I didn't understand your request.");
+                    System.out.println("[Error] Sorry I didn't understand your request.");
             }
         } catch (Exception e) {
             System.out.println("[Error] JSON Parsing failed: " + e.getMessage());
@@ -151,18 +148,15 @@ public class QueryHandler {
         }
     }
 
-    // متد برای پاکسازی و تصحیح قالب JSON دریافتی
+    // sometimes JSON is not beautiful
     private String cleanJsonString(String json) {
-        // حذف فاصله‌های اضافی قبل از نام کلیدها
         json = json.replaceAll("\\s+\"", "\"");
-        // حذف فاصله‌های اضافی بعد از نام کلیدها
         json = json.replaceAll("\"\\s+:", "\":");
-        // حذف فاصله‌های اضافی بین کلید و مقدار
         json = json.replaceAll(":\\s+", ":");
         return json;
     }
 
-    // متد کمکی برای دریافت امن رشته از JSONObject
+    // JSONObject
     private String getSafeString(JSONObject json, String key) {
         if (!json.has(key) || json.isNull(key)) {
             return "Unknown";
@@ -174,29 +168,26 @@ public class QueryHandler {
         return value.toString();
     }
 
-    // متد کمکی برای چاپ یک مقدار به همراه برچسب در صورت موجود بودن مقدار
-    private void printIfExists(String label, String value) {
-        if (!value.equals("Unknown")) {
-            System.out.println(label + ": " + value);
-        }
-    }
+    /*
+     * private void printIfExists(String label, String value) {
+     * if (!value.equals("Unknown")) {
+     * System.out.println(label + ": " + value);
+     * }
+     * }
+     */
 
-    // Method for retrieving people based on the century they were born in.
-    // This method queries the graph for Person nodes connected to a Century node
     // via the BORN_IN relationship.
     public void getPeopleByCentury(String century) {
-        // Build a query to match persons born in a specific century.
         String query = "MATCH (p:Person)-[:BORN_IN]->(centuryNode:Century {century: $century}) " +
                 "RETURN p.full_name AS person, p.occupation AS occupation, p.city AS city, p.birth_year AS birthYear";
         List<Record> results = neo4j.runReadQuery(query, parameters("century", century));
 
-        // Check if any records were found and print the output accordingly.
         if (results.isEmpty()) {
             System.out.println("\nNo historical data found for century: " + century);
         } else {
             System.out.println("\nPeople born in Century " + century + ":");
             for (Record record : results) {
-                // Printing a complete sentence for each person
+                // Printing a complete sentence
                 System.out.println(" - " + record.get("person").asString() +
                         " (Occupation: " + record.get("occupation").asString("Unknown") +
                         ", City: " + record.get("city").asString("Unknown") +
@@ -205,7 +196,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات کامل یک شخص
+    // for whole info of a person
     public void getPersonInfo(String name) {
         String query = "MATCH (p:Person {full_name: $name}) " +
                 "OPTIONAL MATCH (p)-[:BORN_IN_CITY]->(c:City) " +
@@ -220,7 +211,6 @@ public class QueryHandler {
             System.out.println("\n======= Person Information =======");
             for (Record record : results) {
                 Node personNode = record.get("p").asNode();
-                // چاپ اطلاعات فردی با استفاده از ویژگی‌های موجود در گره Person
                 System.out.println("Full Name: " + getSafeString(personNode, "full_name"));
                 System.out.println("Gender: " + getSafeString(personNode, "sex"));
                 System.out.println("Birth Year: " + getSafeString(personNode, "birth_year"));
@@ -242,7 +232,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات یک شهر به همراه کشور، قاره و لیست ساکنان
+    // city informaion
     public void getCityInfo(String city) {
         String query = "MATCH (c:City {name: $city}) " +
                 "OPTIONAL MATCH (c)<-[:BORN_IN_CITY]-(p:Person) " +
@@ -268,7 +258,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات یک کشور به همراه شهرها و افراد برجسته
+    // country information
     public void getCountryInfo(String country) {
         String query = "MATCH (co:Country {name: $country}) " +
                 "OPTIONAL MATCH (co)<-[:LOCATED_IN]-(c:City) " +
@@ -285,7 +275,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات یک قاره به همراه کشورها، شهرها و افراد مهم
+    // continent information
     public void getContinentInfo(String continent) {
         String query = "MATCH (con:Continent {name: $continent}) " +
                 "OPTIONAL MATCH (con)<-[:LOCATED_IN]-(co:Country) " +
@@ -305,7 +295,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات یک occupation به همراه لیست افراد، قرن و شهر مربوطه
+    // occupation
     public void getOccupationInfo(String occupation) {
         String query = "MATCH (p:Person)-[:WORKS_AS]->(o:Occupation {name: $occupation}) " +
                 "OPTIONAL MATCH (p)-[:BORN_IN]->(century:Century) " +
@@ -326,7 +316,7 @@ public class QueryHandler {
         }
     }
 
-    // متد برای دریافت اطلاعات یک industry به همراه لیست افراد، قرن و شغل آن‌ها
+    // industry
     public void getIndustryInfo(String industry) {
         String query = "MATCH (p:Person)-[:IN_INDUSTRY]->(i:Industry {name: $industry}) " +
                 "OPTIONAL MATCH (p)-[:BORN_IN]->(century:Century) " +
@@ -347,39 +337,31 @@ public class QueryHandler {
         }
     }
 
-    // متد برای پردازش پرسش‌های ترکیبی که شامل چند شرط است.
-    // این متد به صورت داینامیک بر اساس کلیدهای موجود در JSON، قسمت‌های مختلف کوئری
-    // را می‌سازد.
+    // combined query
     public void getCombinedQuery(JSONObject entities) {
         String query = "MATCH (p:Person) ";
         StringBuilder whereClause = new StringBuilder("WHERE 1=1 ");
 
-        // اگر کلید city موجود باشد، اضافه کردن MATCH برای شهر
         if (entities.has("city") && !entities.getString("city").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:BORN_IN_CITY]->(c:City {name: $city}) ";
             whereClause.append("AND c.name = $city ");
         }
-        // اگر کلید country موجود باشد، اضافه کردن MATCH برای کشور
         if (entities.has("country") && !entities.getString("country").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:BORN_IN]->(:Country {name: $country}) ";
             whereClause.append("AND $country IS NOT NULL ");
         }
-        // اگر کلید continent موجود باشد، اضافه کردن MATCH برای قاره
         if (entities.has("continent") && !entities.getString("continent").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:BORN_IN]->(:Country)-[:LOCATED_IN]->(con:Continent {name: $continent}) ";
             whereClause.append("AND $continent IS NOT NULL ");
         }
-        // اگر کلید occupation موجود باشد، اضافه کردن MATCH برای شغل
         if (entities.has("occupation") && !entities.getString("occupation").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:WORKS_AS]->(:Occupation {name: $occupation}) ";
             whereClause.append("AND $occupation IS NOT NULL ");
         }
-        // اگر کلید industry موجود باشد، اضافه کردن MATCH برای صنعت
         if (entities.has("industry") && !entities.getString("industry").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:IN_INDUSTRY]->(:Industry {name: $industry}) ";
             whereClause.append("AND $industry IS NOT NULL ");
         }
-        // اگر کلید century موجود باشد، اضافه کردن MATCH برای قرن
         if (entities.has("century") && !entities.getString("century").equalsIgnoreCase("Unknown")) {
             query += "MATCH (p)-[:BORN_IN]->(:Century {century: $century}) ";
             whereClause.append("AND $century IS NOT NULL ");
@@ -388,7 +370,6 @@ public class QueryHandler {
         query += whereClause.toString()
                 + "RETURN p.full_name AS person, p.occupation AS occupation, p.city AS city, p.birth_year AS birthYear";
 
-        // تنظیم پارامترها
         org.neo4j.driver.Value params = parameters(
                 "city", entities.optString("city", "Unknown"),
                 "country", entities.optString("country", "Unknown"),
@@ -411,7 +392,6 @@ public class QueryHandler {
         }
     }
 
-    // متد کمکی برای دریافت امن رشته از یک Node
     private String getSafeString(Node node, String key) {
         if (!node.containsKey(key))
             return "Unknown";

@@ -17,7 +17,7 @@ public class NLPProcessor {
                 """
                 .formatted(userPrompt);
 
-        OllamaClient ollama = new OllamaClient(); // No need to pass a String
+        OllamaClient ollama = new OllamaClient();
         String response = ollama.generate("llama3.2", extractionPrompt);
         System.out.println("Response from Ollama:");
         System.out.println(response);
