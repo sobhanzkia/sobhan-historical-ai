@@ -1,0 +1,5 @@
+sobhanz\example\QueryHandler.class
+sobhanz\example\Neo4jConnector.class
+sobhanz\example\HistoricalAIAgent.class
+sobhanz\example\NLPProcessor.class
+sobhanz\example\OllamaClient.class
