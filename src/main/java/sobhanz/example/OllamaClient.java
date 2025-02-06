@@ -23,7 +23,7 @@ public class OllamaClient {
             requestData.put("prompt", prompt);
             requestData.put("stream", false);
             conn.setConnectTimeout(60000);
-            conn.setReadTimeout(60000);
+            // conn.setReadTimeout(60000);
 
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = requestData.toString().getBytes("utf-8");
